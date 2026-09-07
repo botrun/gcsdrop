@@ -75,8 +75,7 @@ musl, so they do not care which glibc the host has.
 
 **There is no `cargo install`.** Many container images have no `cargo` and no `rustc`, and a
 tool you have to compile is a tool people will not try. Prebuilt binaries are the intended path;
-[Build from source](#build-from-source) is the fallback, and today it is the only path that
-works.
+[Build from source](#build-from-source) is the fallback.
 
 Pick your platform's asset name and use it everywhere `ASSET` appears below:
 
@@ -86,26 +85,31 @@ Pick your platform's asset name and use it everywhere `ASSET` appears below:
 | Linux arm64 | `gcsdrop-linux-arm64` |
 | macOS Apple Silicon | `gcsdrop-macos-arm64` |
 
-> ⚠️ **No release has been published yet, so these downloads will fail today.** The URLs follow
-> GitHub's standard `releases/latest/download/` shape and match the asset names the release
-> workflow produces, but there is nothing behind them until the first tag is pushed. Until then,
-> use [Build from source](#build-from-source) below.
-
 Each asset ships with a `.sha256` file next to it, built in the same release workflow run and
 uploaded alongside the tarball. Checking it catches a corrupted or truncated download — it does
 **not** prove the release itself is untampered, since both files come from the same run and an
 attacker who could replace the tarball could replace the checksum beside it too. Still worth
-doing:
+doing.
+
+### Today: the repository is private
+
+`releases/latest/download/...` is an unauthenticated URL. GitHub returns a 404 for it on a
+private repo — the same 404 whether the release is missing or you simply cannot see it. Use the
+`gh` CLI instead; it authenticates the download for you, and `--pattern` fetches the tarball and
+its checksum together.
+
+**Prerequisite:** the [`gh` CLI](https://cli.github.com/), logged in (`gh auth login`), with
+access to the `botrun` GitHub org. Without org access you get the same 404 as a missing release —
+that is not a bug in this README, check your access before assuming the release is broken.
 
 ```bash
-# Linux x86-64. On macOS use ASSET=gcsdrop-macos-arm64 and shasum -a 256 -c.
-ASSET=gcsdrop-linux-amd64
-
 mkdir -p "$HOME/bin"
 cd "$(mktemp -d)"
 
-curl -fsSLO "https://github.com/botrun/gcsdrop/releases/latest/download/$ASSET.tar.gz"
-curl -fsSLO "https://github.com/botrun/gcsdrop/releases/latest/download/$ASSET.tar.gz.sha256"
+# Linux x86-64. On macOS use ASSET=gcsdrop-macos-arm64 and shasum -a 256 -c.
+ASSET=gcsdrop-linux-amd64
+
+gh release download --repo botrun/gcsdrop --pattern "$ASSET*"
 
 sha256sum -c "$ASSET.tar.gz.sha256"      # macOS: shasum -a 256 -c "$ASSET.tar.gz.sha256"
 tar -xzf "$ASSET.tar.gz" -C "$HOME/bin"
@@ -114,6 +118,27 @@ chmod +x "$HOME/bin/gcsdrop"
 
 The tarball holds the bare `gcsdrop` binary with no wrapping directory, so `tar -xz -C ~/bin`
 puts it exactly at `~/bin/gcsdrop`.
+
+### Once the repository is public
+
+⚠️ **Not yet — this fails with a 404 today**, for the private-repo reason explained above. Kept
+here so that once the repo opens up, a reader lands on the simple `curl` form instead of being
+sent to `gh release download` or the harder [Build from source](#build-from-source) path.
+
+```bash
+mkdir -p "$HOME/bin"
+cd "$(mktemp -d)"
+
+# Linux x86-64. On macOS use ASSET=gcsdrop-macos-arm64 and shasum -a 256 -c.
+ASSET=gcsdrop-linux-amd64
+
+curl -fsSLO "https://github.com/botrun/gcsdrop/releases/latest/download/$ASSET.tar.gz"
+curl -fsSLO "https://github.com/botrun/gcsdrop/releases/latest/download/$ASSET.tar.gz.sha256"
+
+sha256sum -c "$ASSET.tar.gz.sha256"      # macOS: shasum -a 256 -c "$ASSET.tar.gz.sha256"
+tar -xzf "$ASSET.tar.gz" -C "$HOME/bin"
+chmod +x "$HOME/bin/gcsdrop"
+```
 
 ### Put it on your `PATH`
 
@@ -140,8 +165,10 @@ If you would rather not touch `PATH` at all, call the binary by its full path ev
 
 ### Build from source
 
-Needed today, because no release exists yet. Requires a Rust toolchain
-(<https://rustup.rs>); it will not work in a container image that ships without `cargo`.
+The fallback if a prebuilt binary does not fit — no `gh` CLI, no org access, or a platform not
+in the table above. Requires a Rust toolchain (<https://rustup.rs>); it will not work in a
+container image that ships without `cargo`. Cloning also requires the same GitHub access as the
+prebuilt binaries, since the repository is private.
 
 ```bash
 git clone https://github.com/botrun/gcsdrop
@@ -853,7 +880,19 @@ on the outer object; gcsdrop's own error message spells this out in full.
 
 ### Installing
 
-Two hosts. If you maintain an egress allowlist, permit both:
+Depends on which install method above you use. With `gh release download` — the one that works
+today, since the repo is private — permit both, confirmed with `GH_DEBUG=api`:
+
+```
+api.github.com
+release-assets.githubusercontent.com
+```
+
+`api.github.com` looks up the release and the asset's signed download URL; the bytes themselves
+come from `release-assets.githubusercontent.com`.
+
+With plain `curl` against `releases/latest/download/...` — only once the repo is public — permit
+these two instead:
 
 ```
 github.com
