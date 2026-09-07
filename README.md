@@ -91,39 +91,10 @@ uploaded alongside the tarball. Checking it catches a corrupted or truncated dow
 attacker who could replace the tarball could replace the checksum beside it too. Still worth
 doing.
 
-### Today: the repository is private
+### `curl` — no `gh` CLI, no login, no org membership
 
-`releases/latest/download/...` is an unauthenticated URL. GitHub returns a 404 for it on a
-private repo — the same 404 whether the release is missing or you simply cannot see it. Use the
-`gh` CLI instead; it authenticates the download for you, and `--pattern` fetches the tarball and
-its checksum together.
-
-**Prerequisite:** the [`gh` CLI](https://cli.github.com/), logged in (`gh auth login`), with
-access to the `botrun` GitHub org. Without org access you get the same 404 as a missing release —
-that is not a bug in this README, check your access before assuming the release is broken.
-
-```bash
-mkdir -p "$HOME/bin"
-cd "$(mktemp -d)"
-
-# Linux x86-64. On macOS use ASSET=gcsdrop-macos-arm64 and shasum -a 256 -c.
-ASSET=gcsdrop-linux-amd64
-
-gh release download --repo botrun/gcsdrop --pattern "$ASSET*"
-
-sha256sum -c "$ASSET.tar.gz.sha256"      # macOS: shasum -a 256 -c "$ASSET.tar.gz.sha256"
-tar -xzf "$ASSET.tar.gz" -C "$HOME/bin"
-chmod +x "$HOME/bin/gcsdrop"
-```
-
-The tarball holds the bare `gcsdrop` binary with no wrapping directory, so `tar -xz -C ~/bin`
-puts it exactly at `~/bin/gcsdrop`.
-
-### Once the repository is public
-
-⚠️ **Not yet — this fails with a 404 today**, for the private-repo reason explained above. Kept
-here so that once the repo opens up, a reader lands on the simple `curl` form instead of being
-sent to `gh release download` or the harder [Build from source](#build-from-source) path.
+The repository is public, so `releases/latest/download/...` is a plain unauthenticated URL. This
+is the normal way to install gcsdrop:
 
 ```bash
 mkdir -p "$HOME/bin"
@@ -139,6 +110,36 @@ sha256sum -c "$ASSET.tar.gz.sha256"      # macOS: shasum -a 256 -c "$ASSET.tar.g
 tar -xzf "$ASSET.tar.gz" -C "$HOME/bin"
 chmod +x "$HOME/bin/gcsdrop"
 ```
+
+The tarball holds the bare `gcsdrop` binary with no wrapping directory, so `tar -xz -C ~/bin`
+puts it exactly at `~/bin/gcsdrop`.
+
+### `gh release download` — to pin a version, or if the repo goes private again
+
+Reach for this instead of `curl` in two cases: you want an exact version tag instead of always
+`latest`, or this repository is ever made private again — `gh` authenticates the download,
+`curl` does not.
+
+**Prerequisite:** the [`gh` CLI](https://cli.github.com/), logged in (`gh auth login`).
+
+```bash
+mkdir -p "$HOME/bin"
+cd "$(mktemp -d)"
+
+# Linux x86-64. On macOS use ASSET=gcsdrop-macos-arm64 and shasum -a 256 -c.
+ASSET=gcsdrop-linux-amd64
+
+gh release download --repo botrun/gcsdrop --pattern "$ASSET*"
+# to pin an exact version instead of latest:
+# gh release download v0.1.0 --repo botrun/gcsdrop --pattern "$ASSET*"
+
+sha256sum -c "$ASSET.tar.gz.sha256"      # macOS: shasum -a 256 -c "$ASSET.tar.gz.sha256"
+tar -xzf "$ASSET.tar.gz" -C "$HOME/bin"
+chmod +x "$HOME/bin/gcsdrop"
+```
+
+The tarball holds the bare `gcsdrop` binary with no wrapping directory, so `tar -xz -C ~/bin`
+puts it exactly at `~/bin/gcsdrop`.
 
 ### Put it on your `PATH`
 
@@ -165,10 +166,9 @@ If you would rather not touch `PATH` at all, call the binary by its full path ev
 
 ### Build from source
 
-The fallback if a prebuilt binary does not fit — no `gh` CLI, no org access, or a platform not
-in the table above. Requires a Rust toolchain (<https://rustup.rs>); it will not work in a
-container image that ships without `cargo`. Cloning also requires the same GitHub access as the
-prebuilt binaries, since the repository is private.
+The fallback if a prebuilt binary does not fit — a platform not in the table above. Requires a
+Rust toolchain (<https://rustup.rs>); it will not work in a container image that ships without
+`cargo`.
 
 ```bash
 git clone https://github.com/botrun/gcsdrop
@@ -880,19 +880,10 @@ on the outer object; gcsdrop's own error message spells this out in full.
 
 ### Installing
 
-Depends on which install method above you use. With `gh release download` — the one that works
-today, since the repo is private — permit both, confirmed with `GH_DEBUG=api`:
+Depends on which install method above you use.
 
-```
-api.github.com
-release-assets.githubusercontent.com
-```
-
-`api.github.com` looks up the release and the asset's signed download URL; the bytes themselves
-come from `release-assets.githubusercontent.com`.
-
-With plain `curl` against `releases/latest/download/...` — only once the repo is public — permit
-these two instead:
+With plain `curl` against `releases/latest/download/...` — the normal route now that the repo is
+public — permit these two:
 
 ```
 github.com
@@ -901,6 +892,17 @@ release-assets.githubusercontent.com
 
 `github.com` serves the redirect; `release-assets.githubusercontent.com` serves the actual asset
 bytes. Allowing only the first gets you a redirect you cannot follow.
+
+With `gh release download` — for pinning a version, or if the repo goes private again — permit
+both instead, confirmed with `GH_DEBUG=api`:
+
+```
+api.github.com
+release-assets.githubusercontent.com
+```
+
+`api.github.com` looks up the release and the asset's signed download URL; the bytes themselves
+come from `release-assets.githubusercontent.com`.
 
 ### Running
 
