@@ -1,0 +1,9 @@
+/target
+
+# git worktrees live here (see CLAUDE.md); never commit their contents
+/.claude/worktrees/
+
+# Development-process artifacts (plans, specs, review reports). They document
+# how this tool was built, not how to use it — README.md is the user-facing
+# documentation. Kept out of the repo so it stays about the tool.
+/docs/superpowers/

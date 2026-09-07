@@ -1,0 +1,29 @@
+[package]
+name = "gcsdrop"
+version = "0.1.0"
+edition = "2021"
+description = "Publish HTML to your own GCS bucket and get a shareable URL"
+license = "MIT"
+repository = "https://github.com/botrun/gcsdrop"
+keywords = ["gcs", "google-cloud", "storage", "share", "cli"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+anyhow = "1.0"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+clap = { version = "4.6", features = ["derive"] }
+google-cloud-auth = "1.16"
+google-cloud-storage = "1.18"
+mime_guess = "2.0"
+rand = "0.10"
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs"] }
+walkdir = "2.5"
+
+[dev-dependencies]
+tempfile = "3.27"
+
+[profile.release]
+lto = true
+strip = true
