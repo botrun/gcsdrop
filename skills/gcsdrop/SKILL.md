@@ -48,18 +48,18 @@ still worth doing:
 mkdir -p "$HOME/bin"
 cd "$(mktemp -d)"
 
-gh release download --repo botrun/gcsdrop --pattern "$ASSET*"
+curl -fsSLO "https://github.com/botrun/gcsdrop/releases/latest/download/$ASSET.tar.gz"
+curl -fsSLO "https://github.com/botrun/gcsdrop/releases/latest/download/$ASSET.tar.gz.sha256"
 
 sha256sum -c "$ASSET.tar.gz.sha256"      # macOS: shasum -a 256 -c "$ASSET.tar.gz.sha256"
 tar -xzf "$ASSET.tar.gz" -C "$HOME/bin"
 chmod +x "$HOME/bin/gcsdrop"
 ```
 
-Requires the `gh` CLI, already authenticated. The repo is private, so a plain `curl` against
-`releases/latest/download/...` 404s even though the release exists; `gh` authenticates the
-download instead. A release exists now, so a 404 here means an auth or org-access problem, not a
-missing release — tell the human what `gh` printed and stop. Do not fall back to `cargo install`
-or building from source; the target container has no Rust toolchain.
+The repo is public and this URL is unauthenticated — no `gh` CLI, no login needed. A 404 here
+most likely means `$ASSET` is wrong for this platform, not a missing release — recheck the
+`uname` mapping above, tell the human what happened, and stop. Do not fall back to
+`cargo install` or building from source; the target container has no Rust toolchain.
 
 ## 2. Generate ONE self-contained HTML file
 
